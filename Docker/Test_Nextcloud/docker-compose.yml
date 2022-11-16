@@ -1,0 +1,42 @@
+version: '3'
+
+volumes:
+  db:
+  nextcloud:
+
+services:
+  db:
+    image: postgres
+    restart: always
+    volumes:
+      - db:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    #задаем имя, по котрому к базе будет подключаться приложение
+    hostname: db1
+    #задаем переменные окружения в отдельном файле
+    env_file:
+      - var_env.env
+
+#    environment:
+#      - POSTGRES_USER=admin
+#      - POSTGRES_PASSWORD=admin
+#      - POSTGRES_DB=nextcloud_db
+
+  app:
+    image: nextcloud
+    restart: always
+    links:
+      - db
+    volumes:
+      - nextcloud:/var/www/html
+    ports:
+      - 80:80
+    env_file:
+      - var_env.env
+    environment:
+      - POSTGRES_HOST=db1
+#      - POSTGRES_USER=admin
+#      - POSTGRES_PASSWORD=admin
+#      - POSTGRES_DB=nextcloud_db
+    

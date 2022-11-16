@@ -1,0 +1,53 @@
+version: "3"
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    restart: always
+    #имя задается переменной окружения NAME
+    #container_name: "${NAME}"
+    container_name: api
+    volumes:
+      - ./.env:/opt/app/.env
+    networks:
+      - myNetwork
+    depends_on:
+      - rmq
+    ports:
+      - 3002:3000
+
+  rmq:
+    image: rabbitmq:3-management
+    restart: always
+    networks:
+      - myNetwork
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+
+  converter:
+    build:
+      context: .
+      dockerfile: ./apps/converter/Dockerfile
+    container_name: converter
+    volumes:
+      - ./.env:/opt/app/.env
+    networks:
+      - myNetwork
+    depends_on:
+      - rmq
+
+  app:
+    build:
+      context: .
+      dockerfile: ./apps/app/Dockerfile
+    container_name: app
+    networks:
+      - myNetwork
+    ports:
+      - 3001:80
+
+networks:
+  myNetwork:
+    driver: bridge

@@ -1,0 +1,132 @@
+---
+- hosts: ise_servers
+  vars_files:
+    - credentials.yml
+  vars:
+    ise_login: &ise_login
+      ise_hostname: "{{ ise_hostname }}"
+      ise_username: "{{ ise_username }}"
+      ise_password: "{{ ise_password }}"
+      ise_verify: "{{ ise_verify }}"
+      ise_version: "{{ ise_version }}"
+      ise_debug: "{{ ise_debug }}"
+    device_name: WLC
+    ipv4: 198.19.11.10
+    profile_name: Cisco
+    network_device_groups: 
+      - Location#All Locations
+      - IPSEC#Is IPSEC Device#No
+      - Device Type#All Device Types#Wireless
+    #  - Department#Department
+    radius_secret: testRadius
+    tacacs_secret: testTacacs
+    snmp_secret: testSnmp
+  gather_facts: false
+  tasks:
+    # - name: "Network Device: {{ device_name }}"
+    #   cisco.ise.network_device:
+    #     <<: *ise_login
+    #     state: present
+    #     name: "{{ device_name }}"
+    #     description: "{{ device_name }}"
+    #     profileName: "{{ profile_name | default(Cisco) }}"
+    #     NetworkDeviceIPList:
+    #     - ipaddress: "{{ ipv4 }}"
+    #       mask: 32
+    #     NetworkDeviceGroupList: "{{ network_device_groups }}"
+    #     authenticationSettings:
+    #       networkProtocol: RADIUS
+    #       radiusSharedSecret: "{{ radius_secret }}"
+    #       enableKeyWrap: False
+    #       dtlsRequired: False
+    #       enableMultiSecret: "false"
+    #     tacacsSettings:
+    #       sharedSecret: "{{ tacacs_secret }}"
+    #       connectModeOptions: "OFF"
+    #       previousSharedSecret:
+    #       previousSharedSecretExpiry: 0
+    #     snmpsettings:
+    #       version: TWO_C
+    #       roCommunity: "{{snmp_secret}}"
+    #       authPassowrd: string
+    #       privacyPassowrd: string
+    #       pollingInterval: 28800
+    #       linkTrapQuery: true
+    #       macTrapQuery: true
+    #       originatingPolicyServicesNode: "Auto"
+    #     dtlsDnsName: "{{ device_name }}"
+    #     coaPort: 0
+    #   register: result
+
+    # - name: "Get Network Device by Name: {{ device_name }}"
+    #   cisco.ise.network_device_info:
+    #     <<: *ise_login
+    #     name: "{{ device_name }}"
+    #   register: result
+    
+    
+    # - name: Create network device
+    #   vars:
+    #     network_devices:
+    #     - name: TestDevice
+    #       description: description2
+    #       coa_port: 1700
+    #       network_device_group_list:
+    #       - Device Type#All Device Types
+    #       network_device_ip_list:
+    #       - ipaddress: 1.2.3.4
+    #         mask: 32
+    #       shared_secret: shhhhhhh
+    #   loop: "{{ network_devices }}"
+    #   loop_control:
+    #     loop_var: device
+    #   cisco.ise.network_device:
+    #     <<: *ise_login
+    #     state: present
+    #     name: "{{ device.name }}"
+    #     description: "{{ device.description }}"
+    #     coaPort: "{{ device.coa_port }}"
+    #     NetworkDeviceGroupList: "{{ device.network_device_group_list }}"
+    #     NetworkDeviceIPList: "{{ device.network_device_ip_list }}"
+    #     authenticationSettings:
+    #       radiusSharedSecret: "{{ device.shared_secret }}"
+    #   when: "network_devices is defined"
+    #   register: result
+
+    # - name: Get all Network Access Network Condition
+    #   cisco.ise.network_access_network_condition_info:
+    #     <<: *ise_login
+    #   register: result
+
+    # - name: Create
+    #   cisco.ise.network_access_network_condition:
+    #     <<: *ise_login
+    #     state: present
+    #     conditionType: string
+    #     description: test
+    #     name: ansibletest
+
+    - name: Remove the Session and Profiler services from the primary node
+      cisco.ise.personas_update_roles_services:
+        #<<: *ise_login
+        ip: "198.18.133.27"
+        username: "admin"
+        password: "984609"
+        hostname: "ise"
+        roles:
+          - Standalone
+          #- PrimaryAdmin
+          #- PrimaryMonitoring
+        services:
+          - Session
+          - Profiler
+      register: result
+
+    # - name: Get Node Deployment by name
+    #   cisco.ise.node_deployment_info:
+    #     <<: *ise_login
+    #     hostname: ise
+
+    - name: Debug result.
+      ansible.builtin.debug:
+        var: result

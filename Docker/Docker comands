@@ -1,0 +1,4 @@
+Список volums:
+docker volume ls
+Создать volume:
+docker volume create v1

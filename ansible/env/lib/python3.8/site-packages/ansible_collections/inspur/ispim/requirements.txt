@@ -1,0 +1,2 @@
+inspursmsdk
+Python 3.7+ 

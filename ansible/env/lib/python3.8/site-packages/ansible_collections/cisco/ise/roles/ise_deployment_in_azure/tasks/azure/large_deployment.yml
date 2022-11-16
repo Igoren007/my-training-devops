@@ -1,0 +1,87 @@
+- name: Create a network interface
+  azure.azcollection.azure_rm_networkinterface:
+    name: "webNic_{{item}}"
+    resource_group: ise_ansible_test
+    virtual_network: ise_network
+    subnet_name: ise_subnetwork
+    security_group: ise_network_sg
+    ip_configurations:
+      - name: "ipconfig_{{item}}"
+        primary: True
+  with_sequence: count="{{(ise_psn_instances|int)+4}}"
+  when: ise_psn_instances | int < 50
+
+- name: Create a network interface - 54 instances maximum
+  azure.azcollection.azure_rm_networkinterface:
+    name: "webNic_{{item}}"
+    resource_group: ise_ansible_test
+    virtual_network: ise_network
+    subnet_name: ise_subnetwork
+    security_group: ise_network_sg
+    ip_configurations:
+      - name: "ipconfig_{{item}}"
+        primary: True
+  with_sequence: count=54
+  when: ise_psn_instances | int >= 54
+
+- name: Provision ISE PAN Servers
+  azure.azcollection.azure_rm_virtualmachine:
+    resource_group: ise
+    name: "ISE-PAN-Servers-{{item}}"
+    vm_size: Standard_DS1_v2 #custom
+    admin_username: "{{ username }}"
+    admin_password: "{{ password }}"
+    network_interfaces: "webNic_{{item}}"
+    image:
+      offer: CentOS
+      publisher: OpenLogic
+      sku: '7.5'
+      version: latest
+  with_sequence: count=2
+
+- name: Provision ISE MNT Servers
+  azure.azcollection.azure_rm_virtualmachine:
+    resource_group: ise
+    name: "ISE-MNT-Servers-{{item}}"
+    vm_size: Standard_DS1_v2 #custom
+    admin_username: "{{ username }}"
+    admin_password: "{{ password }}"
+    network_interfaces: "webNic_{{(item|int)+2}}"
+    image:
+      offer: CentOS
+      publisher: OpenLogic
+      sku: '7.5'
+      version: latest
+  with_sequence: count=2
+
+- name: "Provision ISE {{ise_psn_instances}} Servers"
+  azure.azcollection.azure_rm_virtualmachine:
+    resource_group: ise
+    name: "ISE-PSN-Servers-{{item}}"
+    vm_size: Standard_DS1_v2 #custom
+    admin_username: "{{ username }}"
+    admin_password: "{{ password }}"
+    network_interfaces: "webNic_{{(item|int)+4}}"
+    image:
+      offer: CentOS
+      publisher: OpenLogic
+      sku: '7.5'
+      version: latest
+  with_sequence: count="{{ise_psn_instances}}"
+  when: ise_psn_instances | int < 50
+
+- name: "Provision ISE {{ise_psn_instances}} Servers - 50 instances maximum"
+  azure.azcollection.azure_rm_virtualmachine:
+    resource_group: ise
+    name: "ISE-PSN-Servers-{{item}}"
+    vm_size: Standard_DS1_v2 #custom
+    admin_username: "{{ username }}"
+    admin_password: "{{ password }}"
+    network_interfaces: "webNic_{{(item|int)+4}}"
+    image:
+      offer: CentOS
+      publisher: OpenLogic
+      sku: '7.5'
+      version: latest
+  with_sequence: count=50
+  when: ise_psn_instances | int >= 50

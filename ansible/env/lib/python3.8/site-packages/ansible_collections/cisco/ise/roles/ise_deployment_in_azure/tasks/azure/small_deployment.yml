@@ -1,0 +1,26 @@
+- name: Create a network interface
+  azure.azcollection.azure_rm_networkinterface:
+    name: "webNic_{{item}}"
+    resource_group: ise_ansible_test
+    virtual_network: ise_network
+    subnet_name: ise_subnetwork
+    security_group: ise_network_sg
+    ip_configurations:
+      - name: "ipconfig_{{item}}"
+        primary: True
+  with_sequence: count=2
+
+- name: Create a VM with a custom image
+  azure.azcollection.azure_rm_virtualmachine:
+    resource_group: ise_ansible_test
+    name: "ISE_Server_{{item}}"
+    vm_size: Standard_DS1_v2
+    admin_username: "ansible_admin"
+    admin_password: "123Ansible!"
+    network_interfaces: "webNic_{{item}}"
+    image:
+      offer: CentOS
+      publisher: OpenLogic
+      sku: '7.5'
+      version: latest
+  with_sequence: count=2

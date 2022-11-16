@@ -1,0 +1,11 @@
+
+- name: Step1
+  hosts: udf
+  remote_user: igarmatenko
+  become: yes
+
+  tasks:
+
+    - name: Show container version
+      ansible.builtin.shell: sudo docker ps | grep udf
+      register: result

@@ -1,0 +1,102 @@
+    - name: Create Resource Group
+      azure.azcollection.azure_rm_resourcegroup:
+        name: "{{ az_rg_name }}"
+        location: "{{ az_location }}"
+      #register: rg
+
+    - name: Create Virtual Network
+      azure.azcollection.azure_rm_virtualnetwork:
+        resource_group: "{{ az_rg_name }}"
+        name: "{{ az_network_name }}"
+        address_prefixes_cidr: "{{ az_network_cidr }}"
+        dns_servers: "{{ az_network_dns }}"
+
+    - name: Add Subnet
+      azure.azcollection.azure_rm_subnet:
+        resource_group: "{{ az_rg_name }}"
+        name: "{{ az_subnet_name }}"
+        address_prefix: "{{ az_subnet_cidr }}"
+        virtual_network: "{{ az_network_name }}"
+
+    - name: Create public IP address
+      azure.azcollection.azure_rm_publicipaddress:
+        resource_group: "{{ az_rg_name }}"
+        allocation_method: Static
+        name: webPublicIP
+      register: output_ip_address
+
+    - name: Output public IP
+      debug:
+        msg: "The public IP is {{ output_ip_address.state.ip_address }}"
+
+    - name: Create Security Group
+      azure.azcollection.azure_rm_securitygroup:
+        resource_group: "{{ az_rg_name }}"
+        name: "{{ az_securitygroup_name }}"
+        purge_rules: no
+        rules:
+          # - name: DenySSH
+          #   protocol: Tcp
+          #   destination_port_range: 22
+          #   access: Deny
+          #   priority: 100
+          #   direction: Inbound
+          - name: 'AllowHTTPSAccess'
+            protocol: Tcp
+            source_address_prefix: "*"
+            #source_address_prefix: "{{ az_public_access_cidr }}"
+            destination_port_range: 443
+            access: Allow
+            priority: 100
+          - name: 'AllowHTTPAccess'
+            protocol: Tcp
+            source_address_prefix: "*"
+            #source_address_prefix: "{{ az_public_access_cidr }}"
+            destination_port_range: 80
+            access: Allow
+            priority: 101
+          - name: 'AllowSSHAccess'
+            protocol: Tcp
+            source_address_prefix: "*"
+            #source_address_prefix: "{{ az_public_access_cidr }}"
+            destination_port_range: 80
+            access: Allow
+            priority: 102
+          - name: 'AllowTCP'
+            protocol: Tcp
+            source_address_prefix: "*"
+            #source_address_prefix: "{{ az_public_access_cidr }}"
+            destination_port_range: "*"
+              # - 0
+              # - 65535
+            access: Allow
+            priority: 103
+          - name: 'AllowUDP'
+            protocol: Udp
+            #source_address_prefix: "{{ az_public_access_cidr }}"
+            destination_port_range: "*"
+              # - 0
+              # - 65535
+            access: Allow
+            priority: 104
+          - name: 'AllowICMP'
+            protocol: Icmp
+            source_address_prefix: "*"
+            #source_address_prefix: "{{ az_public_access_cidr }}"
+            destination_port_range: "*"
+              # - 0
+              # - 65535
+            access: Allow
+            priority: 105
+
+    - include_tasks: single_node.yml
+      when: ise_deployment_type == "single"
+
+    - include_tasks: small_deployment.yml
+      when: ise_deployment_type == "small"
+
+    - include_tasks: medium_deployment.yml
+      when: ise_deployment_type == "medium"
+
+    - include_tasks: large_deployment.yml
+      when: ise_deployment_type == "large"

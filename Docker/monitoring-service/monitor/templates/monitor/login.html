@@ -1,0 +1,18 @@
+{% extends 'monitor/base.html' %}
+
+{% block content %}
+
+  <div class="login-page">
+      <div class="form">
+        <form class="login-form" method="post">
+          {% csrf_token %}
+          <div class="form-error">{{ form.non_field_errors }}</div>
+          {% for f in form %}
+              {{ f }}
+          {% endfor %}
+          <button>Войти</button>
+        </form>
+      </div>
+  </div>
+
+  {% endblock %}

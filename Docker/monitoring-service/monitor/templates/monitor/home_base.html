@@ -1,0 +1,41 @@
+{% extends 'monitor/base.html' %}
+{% load static %}
+
+{% block content %}
+    <div class="main">
+        <div  class="leftbar">
+            <ul class="home_menu">
+                {% for key, item in menu.up.items %}
+{#                    для выделения активного пункта меню#}
+                    {% url key as url %}
+                    <li class="home_menu__item {% if request.path == url %}active{%endif %}">
+                        <a href="{% url key %}">{{ item }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+            <ul class="home_menu">
+                {% for key, item in menu.down.items %}
+{#                    для выделения активного пункта меню#}
+                    {% url key as url %}
+                    <li class="home_menu__item {% if request.path == url %}active{%endif %}">
+                        <a href="{% url key %}">{{ item }}</a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="rightbar">
+            <div class="home_nav">
+                <div class="home_info">
+                    {% if request.user.is_authenticated %}
+                        <span>{{ user.first_name }} {{ user.last_name }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% block rightbar %}
+            {% endblock %}
+
+        </div>
+    </div>
+{% endblock %}

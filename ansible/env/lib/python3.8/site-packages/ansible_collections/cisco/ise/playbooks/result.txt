@@ -1,0 +1,173 @@
+PLAY [ise_servers] ***************************************************************************************************************************************************************
+
+TASK [Create Endpoint] ***********************************************************************************************************************************************************
+Attempt 1
+
+Request
+	URL: https://198.18.133.27/ers/config/endpoint/name/500000010015
+	Method: GET
+	Headers:
+		User-Agent: python-requests/2.27.1
+		Accept-Encoding: gzip, deflate
+		Accept: application/json
+		Connection: keep-alive
+		authorization: Basic YWRtaW46OTc1OTY1
+		Content-type: application/json;charset=utf-8
+	Params:
+              {}
+
+Response
+	Status: 404 -
+	Headers:
+		Content-Type: application/json;charset=utf-8
+		Content-Length: 0
+		Connection: keep-alive
+		Cache-Control: no-cache, no-store, must-revalidate
+		Expires: Thu, 01 Jan 1970 00:00:00 GMT
+		Set-Cookie: JSESSIONIDSSO=B1262E2E2F7CF9B97D6E06CA6C162FA2; Path=/; Secure; HttpOnly, APPSESSIONID=ADFD13ECBE1F0FD3A5E3BB494014DB81; Path=/ers; Secure; HttpOnly
+		Pragma: no-cache
+		X-Frame-Options: SAMEORIGIN
+		Strict-Transport-Security: max-age=31536000; includeSubDomains
+		X-Content-Type-Options: nosniff
+		X-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;
+		X-WebKit-CSP: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;
+		Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;
+		X-XSS-Protection: 1; mode=block
+		Date: Fri, 02 Sep 2022 14:27:35 GMT
+		Server:
+	Body:
+b''
+Attempt 1
+
+Request
+	URL: https://198.18.133.27/ers/config/endpoint
+	Method: POST
+	Headers:
+		User-Agent: python-requests/2.27.1
+		Accept-Encoding: gzip, deflate
+		Accept: application/json
+		Connection: keep-alive
+		authorization: Basic YWRtaW46OTc1OTY1
+		Content-type: application/json;charset=utf-8
+	Params:
+              {}
+	Body:
+            {
+                "ERSEndPoint": {
+                    "name": "Ansible name",
+                    "description": "ansible test",
+                    "mac": "500000010015"
+                }
+            }
+
+Response
+	Status: 201 -
+	Headers:
+		Content-Type: application/json;charset=utf-8
+		Content-Length: 0
+		Connection: keep-alive
+		Cache-Control: no-cache, no-store, must-revalidate
+		Pragma: no-cache
+		Expires: Thu, 01 Jan 1970 00:00:00 GMT
+		X-Frame-Options: SAMEORIGIN
+		Strict-Transport-Security: max-age=31536000; includeSubDomains
+		X-Content-Type-Options: nosniff
+		X-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;
+		X-WebKit-CSP: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;
+		Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;
+		X-XSS-Protection: 1; mode=block
+		Location: https://198.18.133.27/ers/config/endpoint/63b04ee0-2acb-11ed-8dac-6632614ae95e
+		Date: Fri, 02 Sep 2022 14:27:35 GMT
+		Server:
+	Body:
+b''
+Attempt 1
+
+Request
+	URL: https://198.18.133.27/ers/config/endpoint/name/500000010015
+	Method: GET
+	Headers:
+		User-Agent: python-requests/2.27.1
+		Accept-Encoding: gzip, deflate
+		Accept: application/json
+		Connection: keep-alive
+		authorization: Basic YWRtaW46OTc1OTY1
+		Content-type: application/json;charset=utf-8
+	Params:
+              {}
+
+Response
+	Status: 200 -
+	Headers:
+		Content-Type: application/json;charset=utf-8
+		Transfer-Encoding: chunked
+		Connection: keep-alive
+		Cache-Control: no-cache, no-store, must-revalidate
+		Expires: Thu, 01 Jan 1970 00:00:00 GMT
+		Pragma: no-cache
+		X-Frame-Options: SAMEORIGIN
+		Strict-Transport-Security: max-age=31536000; includeSubDomains
+		X-Content-Type-Options: nosniff
+		X-Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;
+		X-WebKit-CSP: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;
+		Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;
+		X-XSS-Protection: 1; mode=block
+		ETag: "B5B84D39A3914930A90AC6D23573F359"
+		Date: Fri, 02 Sep 2022 14:27:35 GMT
+		Server:
+	Body:
+             {
+                 "ERSEndPoint": {
+                     "id": "63b04ee0-2acb-11ed-8dac-6632614ae95e",
+                     "name": "50:00:00:01:00:15",
+                     "description": "ansible test",
+                     "mac": "50:00:00:01:00:15",
+                     "profileId": "",
+                     "staticProfileAssignment": false,
+                     "staticProfileAssignmentDefined": true,
+                     "groupId": "aa0e8b20-8bff-11e6-996c-525400b48521",
+                     "staticGroupAssignment": false,
+                     "staticGroupAssignmentDefined": true,
+                     "portalUser": "",
+                     "identityStore": "",
+                     "identityStoreId": "",
+                     "link": {
+                         "rel": "self",
+                         "href": "https://198.18.133.27/ers/config/endpoint/name/500000010015",
+                         "type": "application/json"
+                     }
+                 }
+             }
+changed: [ise_server]
+
+TASK [Debug result.] *************************************************************************************************************************************************************
+ok: [ise_server] => {
+    "result": {
+        "changed": true,
+        "failed": false,
+        "ise_response": {
+            "description": "ansible test",
+            "groupId": "aa0e8b20-8bff-11e6-996c-525400b48521",
+            "id": "63b04ee0-2acb-11ed-8dac-6632614ae95e",
+            "identityStore": "",
+            "identityStoreId": "",
+            "link": {
+                "href": "https://198.18.133.27/ers/config/endpoint/name/500000010015",
+                "rel": "self",
+                "type": "application/json"
+            },
+            "mac": "500000010015",
+            "name": "500000010015",
+            "portalUser": "",
+            "profileId": "",
+            "staticGroupAssignment": false,
+            "staticGroupAssignmentDefined": true,
+            "staticProfileAssignment": false,
+            "staticProfileAssignmentDefined": true
+        },
+        "result": "Object created"
+    }
+}
+
+PLAY RECAP ***********************************************************************************************************************************************************************
+ise_server                 : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0

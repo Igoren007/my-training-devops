@@ -1,0 +1,5 @@
+- name: Python app
+  gather_facts: true
+  hosts: all
+  become: yes
+  become_user: igor

@@ -1,0 +1,49 @@
+- name: Create a network interface
+  azure.azcollection.azure_rm_networkinterface:
+    name: "{{ az_interface_name }}"
+    resource_group: "{{ az_rg_name }}"
+    virtual_network: "{{ az_network_name }}"
+    subnet_name: "{{ az_subnet_name }}"
+    security_group: "{{ az_securitygroup_name }}"
+    ip_configurations:
+      - name: ipconfig1
+        public_ip_address_name: webPublicIP
+        primary: True
+
+- name: Create a VM with a custom image
+  azure.azcollection.azure_rm_virtualmachine:
+    resource_group: "{{ az_rg_name }}"
+    name: "{{ az_vm_name }}"
+    vm_size: Standard_D16s_v5 #custom
+    admin_username: "{{ az_vm_username }}"
+    boot_diagnostics:
+      enabled: yes
+      #storage_account: 
+    ssh_password_enabled: false
+    ssh_public_keys:
+      - path: /home/{{ az_vm_username }}/.ssh/authorized_keys
+        key_data: "{{ az_vm_key }}"
+    network_interfaces: "{{ az_interface_name }}"
+    image: ise-3.2
+    # custom_data: 
+    #   - "hostname={{ ise_base_hostname | lower }}-server"
+    #   - "primarynameserver={{ ise_dns_server }}"
+    #   - "dnsdomain={{ ise_domain }}"
+    #   - "ntpserver={{ ise_ntp_server }}"
+    #   - "timezone={{ ise_timezone }}"
+    #   - "username={{ ise_username }}"
+    #   - "password={{ ise_password }}"
+    #   - "ersapi=yes"
+    #   - "openapi=yes"
+    #   - "pxGrid=yes"
+    #   - "pxgrid_cloud=yes"
+    #custom_data: aG9zdG5hbWU9aXNlXG5wcmltYXJ5bmFtZXNlcnZlcj0yMDguNjcuMjIyLjIyMlxuZG5zZG9tYWluPWV4YW1wbGUuY29tXG5udHBzZXJ2ZXI9MTAuMTAuMTAuMVxudGltZXpvbmU9QW1lcmljYS9Db3N0YV9SaWNhXG51c2VybmFtZT1hZG1pblxucGFzc3dvcmQ9SVNFaXNDMDBMXG5lcnNhcGk9eWVzXG5vcGVuYXBpPXllc1xucHhHcmlkPXllc1xucHhncmlkX2Nsb3VkPXllcw==
+    #custom_data: "hostname={{ ise_base_hostname | lower }}-server\nprimarynameserver={{ ise_dns_server }}\ndnsdomain={{ ise_domain }}\nntpserver={{ ise_ntp_server }}\ntimezone={{ ise_timezone }}\nusername={{ ise_username }}\npassword={{ ise_password }}\nersapi=yes\nopenapi=yes\npxGrid=yes\npxgrid_cloud=yes"
+    #custom_data: aG9zdG5hbWU9aXNlCnByaW1hcnluYW1lc2VydmVyPTIwOC42Ny4yMjIuMjIyCmRuc2RvbWFpbj1leGFtcGxlLmNvbQpudHBzZXJ2ZXI9MTAuMTAuMTAuMQp0aW1lem9uZT1BbWVyaWNhL0Nvc3RhX1JpY2EKdXNlcm5hbWU9YWRtaW4KcGFzc3dvcmQ9SVNFaXNDMDBMCmVyc2FwaT15ZXMKb3BlbmFwaT15ZXMKcHhHcmlkPXllcwpweGdyaWRfY2xvdWQ9eWVz
+    custom_data: "{{ lookup('file', 'cloud-init.yml') }}"
+    #state: absent
+  register: vm
+
+- name: Output VM
+  debug:
+    msg: "{{ vm }}"

@@ -1,0 +1,8 @@
+{% extends 'monitor/home_base.html' %}
+{% load static %}
+
+{% block rightbar %}
+    <a href="{% url 'register_user' %}">Создать нового пользователя</a>
+    <a href="{% url 'create_host' %}">Создать хост</a>
+
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'monitor/home_base.html' %}
+{% load static %}
+
+{% block rightbar %}
+    <form action="" method="post">
+        {% csrf_token %}
+        <div class="form-error">{{ form.non_field_errors }}</div>
+        {% for f in form %}
+            <p>{{ f.label }}</p>
+            <p>{{ f }}</p>
+        {% endfor %}
+        <button>Создать</button>
+    </form>
+
+{% endblock %}
