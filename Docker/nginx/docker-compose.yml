@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  web1:
+    image: mynginx
+    ports:
+      - 8081:80
+    networks:
+      - my_net
+    volumes:
+      - ./data/web1/nginx:/etc/nginx
+      - ./data/web1/www:/data/www
+
+
+  web2:
+    image: mynginx
+    ports:
+      - 8082:80
+    networks:
+      - my_net
+    volumes:
+      - ./data/web2/nginx:/etc/nginx
+      - ./data/web2/www:/data/www
+
+
+
+  web3-bal:
+    image: mynginx
+    ports:
+      - 8080:80
+    networks:
+      - my_net
+    volumes:
+      - ./data/web3/nginx:/etc/nginx
+      - ./data/web3/www:/data/www
+
+
+networks:
+  my_net:
+    driver: bridge
