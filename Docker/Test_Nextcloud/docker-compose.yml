@@ -31,7 +31,7 @@ services:
     volumes:
       - nextcloud:/var/www/html
     ports:
-      - 80:80
+      - 1234:80
     env_file:
       - var_env.env
     environment:
