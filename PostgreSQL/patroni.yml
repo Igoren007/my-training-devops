@@ -1,0 +1,79 @@
+scope: zabbix-staging-cluster
+name: nyc-zabbix-staging
+
+restapi:
+  listen: 0.0.0.0:8010
+  connect_address: nyc-zabbix-staging.nyc:8010
+  # должны быть уникальными иначе свитчовер не сработает
+
+etcd3:
+  hosts: 10.34.2.201,10.34.2.202,10.22.1.78,10.22.1.79,10.22.1.245:2379
+  protocol: http
+bootstrap: #это для авторазвертывания нового и для распределенной конфигурации
+# this section will be written into Etcd:/<namespace>/<scope>/config after initializing new cluster
+# and all other cluster members will use it as a `global configuration`
+  dcs:
+    ttl: 30
+    failsafe_mode: false
+    loop_wait: 10
+    retry_timeout : 10
+    maximum_lag_on_failover : 1048576
+    master_start_timeout : 300
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        max_connections: 200
+        max_worker_processes: 8
+        wal_keep_segments: 500
+        max_wal_senders: 4
+        max_replication_slots: 4
+        max_prepared_transactions: 0
+        max_locks_per_transaction: 64
+        wal_log_hints: on
+
+  initdb:
+  - encoding: UTF8
+  - data-checksums
+  # Additional script to be launched after initial cluster creation (will be passed the connection URL as parameter)
+  #post_init: /usr/local/bin/setup_cluster.sh
+
+  users: #Some additional users which need to be created after initializing new cluster
+    postgres:
+      password: postgres
+    repmgr:
+#      password:
+
+  pg_hba:
+  - local   all             all                                   trust
+  - host    all             all               127.0.0.1/32        trust
+  - host    replication     postgres          127.0.0.1/32        trust
+  - host    replication     repmgr            127.0.0.1/32        trust
+
+  - host    replication     repmgr       10.7.10.0/24          trust
+  - host    repmgr          repmgr       10.7.10.0/24          trust
+
+  - host    replication     repmgr       10.34.2.0/24          trust
+  - host    repmgr          repmgr       10.34.2.0/24          trust
+
+postgresql:
+  listen: 0.0.0.0:5432
+  connect_address: nyc-zabbix-staging.nyc:5432
+  #connect_address: IP address + port through which Postgres is accessible from other nodes and applications.
+  data_dir: /db 
+  bin_dir: /usr/lib/postgresql/13/bin
+  authentication:
+    replication:
+      username: tv_patroni_user
+#      password:
+    superuser:
+      username: tv_patroni_user
+#      password:
+  parameters: #Патрони сам их применит в конфиге
+    wal_keep_segments: 60
+
+  create_replica_methods:
+      - basebackup
+  basebackup:
+      max-rate: '1024M'
+      checkpoint: 'fast'

@@ -1,0 +1,22 @@
+version: "3"
+
+#networks:
+#    patroni_patroni: 
+#        external: true
+services:
+    patroni1:
+        image: patroni-test
+        container_name: patr1
+        ports:
+            - 5441:5432
+            - 8091:8091
+        hostname: patroni1
+        volumes:
+          - /data:/db
+        environment:
+            PATRONI_API_CONNECT_PORT: 8091
+            REPLICATION_NAME: replicator 
+            REPLICATION_PASS: replpass
+            SU_NAME: postgres
+            SU_PASS: supass
+            POSTGRES_APP_ROLE_PASS: appass
