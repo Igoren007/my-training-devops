@@ -1,0 +1,56 @@
+name: patroni2
+scope: pg
+restapi:
+    listen: 0.0.0.0:8008
+    connect_address: patroni2:8008
+etcd:
+    hosts: patroni1:2379,patroni2:2379,patroni3:2379
+bootstrap:
+    dcs:
+        ttl: 100
+        loop_wait: 10
+        retry_timeout: 10
+        maximum_lag_on_failover: 1048576
+        postgresql:
+            use_pg_rewind: true
+            use_slots: true
+            parameters:
+                wal_level: replica
+                hot_standby: "on"
+                wal_keep_segments: 5120
+                max_wal_senders: 5
+                max_replication_slots: 5
+                checkpoint_timeout: 30
+    initdb:
+    - encoding: UTF8
+    - data-checksums
+    pg_hba:
+      - host replication repl 0.0.0.0/0 trust
+      - host replication repl 172.31.28.199/20 trust
+      - host replication repl 172.31.31.47/20 trust
+      - host replication repl all trust
+      - host all all all trust
+    users:
+      postgres:
+        password: password
+      repl:
+        password: password
+
+postgresql:
+    listen: 0.0.0.0:5432
+    connect_address: patroni2:5432
+    data_dir: /db
+    bin_dir: /usr/lib/postgresql/14/bin
+#    config_dir: /var/lib/postgresql/14/main
+#    pgpass: /var/lib/postgresql/.pgpass
+    authentication:
+        superuser:
+            username: postgres
+#
+        replication:
+            username: repl
+​    create_replica_methods:
+        - basebackup
+#
+#    parameters:
+#        unix_socket_directories: '/var/run/postgresql'

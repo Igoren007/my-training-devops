@@ -1,0 +1,13 @@
+ETCD_DATA_DIR="/var/lib/etcd/pg-cluster"
+ETCD_LISTEN_PEER_URLS="http://0.0.0.0:2380"
+ETCD_LISTEN_CLIENT_URLS="http://0.0.0.0:2379"
+ETCD_NAME="core"
+ETCD_HEARTBEAT_INTERVAL="1000"
+ETCD_ELECTION_TIMEOUT="5000"
+#[Clustering]
+ETCD_INITIAL_ADVERTISE_PEER_URLS="http://patroni1:2380"
+ETCD_ADVERTISE_CLIENT_URLS="http://patroni1:2379"
+#ETCD_INITIAL_CLUSTER="core=http://patroni1:2380"
+ETCD_INITIAL_CLUSTER="core=http://patroni1:2380,patroni2=http://patroni2:2380,patroni3=http://patroni3:2380"
+ETCD_INITIAL_CLUSTER_TOKEN="pg-cluster"
+ETCD_INITIAL_CLUSTER_STATE="existing"
