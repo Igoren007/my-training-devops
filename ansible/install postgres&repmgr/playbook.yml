@@ -1,0 +1,31 @@
+- name: Install PostgreSQL and Repmgr
+  gather_facts: true
+  hosts: all
+  become: yes
+
+  tasks:
+
+    - name: PostgreSQL install
+      block:
+
+        - name: Install postgresql-12
+          apt:
+            name: postgresql-12
+            state: present
+            update-cache: true
+
+
+    - name: Repmgr install
+      block:
+
+        - name: Install repmgr
+          apt:
+            name: repmgr
+            state: present
+            update-cache: true
+
+        - name: Install postgresql-12-repmgr
+          apt:
+            name: postgresql-12-repmgr
+            state: present
+            update-cache: true
