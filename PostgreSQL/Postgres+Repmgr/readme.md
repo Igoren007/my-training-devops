@@ -13,7 +13,7 @@ sudo apt install postgresql-12-repmgr
 sudo apt install repmgr
 
 
-В файл postgresql.conf добавляем:
+В файл /etc/postgresql/12/main/postgresql.conf добавляем:
 listen_addresses = '*'
 Это в режиме теста. Нужно указывать точные адреса.
 
@@ -107,10 +107,22 @@ HINT: after starting the server, you need to register this standby with "repmgr 
 Когда кластер работает, мы добавляем следующие строки в файл /etc/sudoers в каждом узле кластера и узле-свидетеля:
 
 Defaults:postgres !requiretty
-postgres ALL = NOPASSWD: sudo systemctl stop postgresql.service, sudo systemctl start postgresql.service, sudo systemctl restart postgresql.service, sudo systemctl reload postgresql.service, sudo systemctl start repmgrd.service, sudo systemctl stop repmgrd.service
+postgres ALL = NOPASSWD: /usr/bin/systemctl stop postgresql.service, /usr/bin/systemctl start postgresql.service, /usr/bin/systemctl restart postgresql.service, /usr/bin/systemctl reload postgresql.service, /usr/bin/systemctl start repmgrd.service, /usr/bin/systemctl stop repmgrd.service
 
 или так
 postgres ALL=(ALL) NOPASSWD:ALL
+
+
+Также ноды должны иметь доступ по ssh к соседним нодам.
+Пример настройки(выполняется под пользователем postgres)
+ssh-keygen - созддутся ключи примерно здесь /var/lib/postgresql/.ssh/
+Далеена ноде, куда нужен доступ создаем файл authorized_keys и вставляем в него содержимое id_rsa.pub:
+touch /var/lib/postgresql/.ssh/authorized_keys
+
+chmod 600 /var/lib/postgresql/.ssh/authorized_keys
+nano .ssh/authorized_keys
+
+В итоге юзер postgres олжен иметь возможность ходить по ssh на другие ноды.
 
 Настройка параметров repmgrd
 
@@ -244,3 +256,13 @@ NOTICE: repmgrd was successfully started
 
 Также проверим событие запуска службы с основного или резервного узлов:
 /usr/bin/repmgr -f /etc/repmgr.conf cluster event --event=repmgrd_start
+
+Выполнить свичовер:
+/usr/bin/repmgr -f /etc/repmgr.conf standby switchover
+
+Удалить ноду из кластера:
+/usr/bin/repmgr -f  /etc/repmgr.conf standby unregister --node-id=3
+
+Удалить ноду из кластера, находясь на ней:
+/usr/bin/repmgr -f  /etc/repmgr.conf standby unregister
+
