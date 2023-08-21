@@ -1,0 +1,1 @@
+Нужно отредактировать /etc/docker/daemon.json добавиви туда свой реджистри подобным образом "insecure-registries": ["https://registry-1.docker.io"]
