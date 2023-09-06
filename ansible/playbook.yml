@@ -1,0 +1,6 @@
+- name: Test using role
+  gather_facts: true
+  hosts: aws-ec2
+  become: yes
+  roles:
+    - docker

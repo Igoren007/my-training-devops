@@ -1,0 +1,39 @@
+pipeline {
+    agent { label "aws"}
+    stages {
+        stage('Pull git repo') {
+            steps {
+                    sh 'git clone ${URL_REPO}'
+                    sh 'ls'
+                }
+            }
+
+        stage('Build image') {
+            steps {
+                    sh '''
+                        dir=$(ls)
+                        cd $dir
+                        docker build --tag my-dev.fun:5000/${IMAGE_NAME}:${IMAGE_VERSION} .
+                        cd ..
+                        rm -rf $dir
+                    '''
+                }
+            }
+        stage('Push image') {
+            steps {
+                    sh '''
+                        docker push my-dev.fun:5000/${IMAGE_NAME}:${IMAGE_VERSION}
+                    '''
+                }
+            }
+
+        stage('Clear all images') {
+            steps {
+                    sh '''
+                        docker rmi $(docker images -a -q)
+                        docker system prune -af
+                    '''
+                }
+            }
+        }
+    }
