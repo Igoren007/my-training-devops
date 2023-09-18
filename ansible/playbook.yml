@@ -3,4 +3,4 @@
   hosts: aws-ec2
   become: yes
   roles:
-    - docker
+    - zabbix-agent
