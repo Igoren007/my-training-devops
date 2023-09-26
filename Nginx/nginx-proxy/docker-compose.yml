@@ -1,0 +1,31 @@
+version: "3.6"
+
+services:
+
+  load_balancer:
+    image: nginx
+    container_name: load_balancer
+    volumes:
+      - ./conf_lb:/etc/nginx/conf.d
+    ports:
+      - 1234:80
+
+  web1:
+    image: nginx
+    container_name: web1
+    volumes:
+      - ./conf_web1:/etc/nginx/conf.d
+    expose:
+      - 8081
+    ports:
+     - 8081:80
+
+  web2:
+    image: nginx
+    container_name: web2
+    volumes:
+      - ./conf_web2:/etc/nginx/conf.d
+    expose:
+      - 8082
+    ports:
+      - 8082:80
