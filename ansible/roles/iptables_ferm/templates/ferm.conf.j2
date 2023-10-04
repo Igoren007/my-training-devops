@@ -1,0 +1,85 @@
+@hook pre "ipset-reload.sh";
+@def $has_libvirt = `pgrep libvirtd && echo -n 1 || echo -n 0`;
+
+{% for table, chains in ferm_rules|dictsort %}
+table {{ table }} {
+{% for chain, rules in chains|dictsort %}
+  chain {{ chain }} {
+{% for value in rules.default_rules %}
+    {{value.rule}} # {{value.comment|default('')}}
+{% endfor %}
+{% if rules.rules is defined %}
+{% for value in rules.rules %}
+    {{value.rule}} # {{value.comment|default('')}}
+{% endfor %}
+{% endif %}
+  }
+{% endfor %}
+}
+{% endfor %}
+
+# Create docker's standard setup for each host
+# custom `nat` chain names due to respect of docker's chain manipulation
+#  https://github.com/MaxKellermann/ferm/issues/58
+table filter chain (DOCKER-USER) {}
+table nat chain (PREROUTING-DOCKER-USER OUTPUT-DOCKER-USER POSTROUTING-DOCKER-USER) {}
+@hook post "iptables -t filter -C FORWARD  -j DOCKER-USER             2>/dev/null || iptables -t filter -I FORWARD  -j DOCKER-USER";
+@hook post "iptables -t nat -C PREROUTING  -j PREROUTING-DOCKER-USER  2>/dev/null || iptables -t nat -I PREROUTING  -j PREROUTING-DOCKER-USER";
+@hook post "iptables -t nat -C OUTPUT      -j OUTPUT-DOCKER-USER      2>/dev/null || iptables -t nat -I OUTPUT      -j OUTPUT-DOCKER-USER";
+@hook post "iptables -t nat -C POSTROUTING -j POSTROUTING-DOCKER-USER 2>/dev/null || iptables -t nat -I POSTROUTING -j POSTROUTING-DOCKER-USER";
+
+table filter {
+  # the only place to use custom traffic forwarding rules now is DOCKER-USER chain
+  #  see https://docs.docker.com/network/iptables/#docker-on-a-router
+  #  docker daemon removes every custom rule in other chains for interface 'docker' on startup
+  chain DOCKER-USER {
+    # bridged networking: allow only local incoming traffic
+    interface ! docker0 outerface docker0 saddr ! 10.0.0.0/8 mod conntrack ctstate (RELATED ESTABLISHED) ACCEPT;
+    interface ! docker0 outerface docker0 saddr ! 10.0.0.0/8 DROP;
+    RETURN;
+  }
+
+  # preserve docker managed chains and rules
+  #  FORWARD: standard chain filter/FORWARD
+  #  DOCKER: traffic from outside to docker container
+  #  DOCKER-ISOLATION-STAGE-1: traffic from docker container to outside
+  #  DOCKER-ISOLATION-STAGE-2: weird for docker v19
+  #  DOCKER-ISOLATION: docker v18 and older way for above
+  #  more chains: https://www.lullabot.com/articles/convincing-docker-and-iptables-play-nicely
+  chain (FORWARD DOCKER DOCKER-ISOLATION DOCKER-ISOLATION-STAGE-1 DOCKER-ISOLATION-STAGE-2) @preserve;
+}
+table nat {
+  # preserve docker's rules
+  #  PREROUTING: traffic from outside to docker container
+  #  DOCKER: docker's port forwarding rules
+  #  OUTPUT: from host outside
+  #  POSTROUTING: from containers outside (usual place for MASQUERADE)
+  chain (DOCKER PREROUTING OUTPUT POSTROUTING) @preserve;
+}
+
+@if $has_libvirt {
+# standard bridged libvirtd network tables, chains and rules
+table nat {
+  chain POSTROUTING-DOCKER-USER {
+    saddr 192.168.122.0/24 daddr (224.0.0.0/24 255.255.255.255/32) RETURN;
+    saddr 192.168.122.0/24 daddr ! 192.168.122.0/24 proto (tcp udp) MASQUERADE to-ports 1024-65535;
+    saddr 192.168.122.0/24 daddr ! 192.168.122.0/24 MASQUERADE;
+  }
+}
+table filter {
+  chain INPUT {
+    interface virbr0 proto (tcp udp) dport (53 67) ACCEPT;
+  }
+  chain DOCKER-USER {
+    daddr 192.168.122.0/24 outerface virbr0 mod conntrack ctstate (ESTABLISHED RELATED) ACCEPT;
+    saddr 192.168.122.0/24 interface virbr0 ACCEPT;
+    interface virbr0 outerface virbr0 ACCEPT;
+    outerface virbr0 REJECT reject-with icmp-port-unreachable;
+    interface virbr0 REJECT reject-with icmp-port-unreachable;
+  }
+  chain OUTPUT {
+    outerface virbr0 proto udp dport 68 ACCEPT;
+  }
+}
+
+} #@if $has_libvirt

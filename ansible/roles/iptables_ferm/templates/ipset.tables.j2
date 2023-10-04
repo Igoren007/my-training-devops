@@ -1,0 +1,10 @@
+{% for table in ipset_tables|dictsort %}
+create {{ table[0] }} {{ table[1].set_option }}
+create {{ table[0] }}_tmp {{ table[1].set_option }}
+{% if table[1].entries %}
+{% for entry in table[1].entries|dictsort(false, 'value') %}
+add {{ table[0] }}_tmp {{ entry[1] }}
+{% endfor %}
+{% endif %}
+
+{% endfor %}

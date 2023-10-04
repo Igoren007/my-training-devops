@@ -1,0 +1,43 @@
+---
+- name: Systemctl daemon-reload
+  systemd:
+    daemon_reload: yes
+  when: result_update_file.changed
+
+- name: Reload ipset tables
+  command: ipset-reload.sh
+  register: command_result
+  failed_when: "command_result.rc != 0"
+
+- name: Reload ferm
+  command: /etc/init.d/ferm reload
+
+- name: autoban, execute autoban
+  raw: >-
+    /usr/local/bin/auto_ban \
+      --debug \
+      --url {{ banurl }} 2>&1
+  register: exec_autoban
+
+- name: broker_access, execute broker_access
+  raw: >-
+    /usr/local/bin/broker_access \
+      --debug \
+      --url {{ brokerlisturl }} 2>&1
+  register: exec_broker_access
+
+- name: fill auto_ban result
+  debug: var=exec_autoban.stdout_lines
+
+- name: fill broker_access result
+  debug: var=exec_broker_access.stdout_lines
+
+- name: Fill up ipsets # noqa 301
+  command: "/usr/local/bin/{{ item.name }}.rb -v --service={{ item.service }}"
+  with_items: "{{ external_healthcheck }}"
+  when: external_healthcheck is defined
+
+- name: Fill up cloudfront ipset # noqa 301
+  command: "/usr/local/bin/{{ item.name }}.rb -v --list={{ item.list }} --service={{ item.service }}"
+  with_items: "{{ aws_cloudfront }}"
+  when: aws_cloudfront is defined

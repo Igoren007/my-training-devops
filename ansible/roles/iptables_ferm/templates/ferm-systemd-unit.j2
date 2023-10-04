@@ -1,0 +1,17 @@
+[Unit]
+Description=ferm firewall configuration
+RequiresMountsFor=/var/cache/
+Wants=network.target
+After=network.target shutdown.target docker.service libvirtd.service
+Conflicts=shutdown.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/etc/init.d/ferm start
+ExecReload=/etc/init.d/ferm reload
+ExecStop=/etc/init.d/ferm stop
+
+[Install]
+WantedBy=sysinit.target

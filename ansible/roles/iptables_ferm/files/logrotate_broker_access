@@ -1,0 +1,8 @@
+/var/log/broker_access.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    notifempty
+    copytruncate
+}

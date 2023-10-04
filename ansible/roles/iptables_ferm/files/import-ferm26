@@ -1,0 +1,642 @@
+#!/usr/bin/perl -w
+
+#
+# ferm, a firewall setup program that makes firewall rules easy!
+#
+# Copyright 2001-2021 Max Kellermann, Auke Kok
+#
+# Bug reports and patches for this program may be sent to the GitHub
+# repository: L<https://github.com/MaxKellermann/ferm>
+#
+
+# This tool allows you to import an existing firewall configuration
+# into ferm.
+
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+# MA 02110-1301 USA.
+#
+
+# $Id$
+
+use strict;
+
+use Data::Dumper;
+
+# Perl 5.18 introduced hash randomization and we want to compare
+$Data::Dumper::Sortkeys = 1;
+
+BEGIN {
+    # find the main "ferm" program
+    my $ferm;
+    if ($0 =~ /^(.*)\//) {
+        $ferm = "$1/ferm";
+    } else {
+        $ferm = 'ferm';
+    }
+
+    # Perl 5.24 requires this prefix or else it will only look in @INC
+    $ferm = "./$ferm" unless $ferm =~ /^\//;
+
+    # import its module tables
+    require $ferm;
+
+    # delete conflicting symbols
+    delete $main::{$_} for qw(merge_keywords parse_option);
+}
+
+use vars qw(%aliases);
+%aliases = (
+    i => 'interface',
+    o => 'outerface',
+    f => 'fragment',
+    p => 'protocol',
+    d => 'daddr',
+    s => 'saddr',
+    m => 'match',
+    j => 'jump',
+    g => 'goto',
+);
+
+use vars qw($indent $table $chain @rules $domain $next_domain);
+
+$indent = 0;
+
+sub ferm_escape($) {
+    local $_ = shift;
+    return $_ unless /[^-\w.:\/]/s or length == 0;
+    return "\'$_\'";
+}
+
+sub format_array {
+    my $a = shift;
+    return ferm_escape($a) unless ref $a;
+    return ferm_escape($a->[0]) if @$a == 1;
+    return '(' . join(' ', map { ferm_escape($_) } @$a) . ')';
+}
+
+sub write_line {
+    # write a line of tokens, with indent handling
+
+    # don't add space before semicolon
+    my $comma = $_[-1] eq ';' ? pop : '';
+    # begins with closing curly braces -> decrease indent
+    $indent -= 4 if $_[0] =~ /^}/;
+    # do print line
+    print ' ' x $indent;
+    print join(' ', @_);
+    print "$comma\n";
+    # ends with opening curly braces -> increase indent
+    $indent += 4 if $_[-1] =~ /{$/;
+}
+
+sub module_match_count {
+    my ($module, $rules) = @_;
+    my $count = 0;
+    foreach (@$rules) {
+        last unless $_->{mod}{$module};
+        $count++;
+    }
+    return $count;
+}
+
+sub prefix_matches {
+    my ($a, $b) = @_;
+    return @{$b->{match}} > 0 &&
+      (Dumper($a->{match}[0]) eq Dumper($b->{match}[0]));
+}
+
+sub prefix_match_count {
+    my ($prefix, $rules) = @_;
+    my $count = 0;
+    foreach (@$rules) {
+        last unless prefix_matches($prefix, $_);
+        $count++;
+    }
+    return $count;
+}
+
+sub is_merging_array_member {
+    my $value = shift;
+    return defined $value &&
+      ((!ref($value)) or
+       ref $value eq 'ARRAY');
+}
+
+sub array_matches($$) {
+    my ($rule1, $rule2) = @_;
+    return if @{$rule1->{match}} == 0 or @{$rule2->{match}} == 0;
+    return unless is_merging_array_member($rule1->{match}[0][1]);
+    return unless is_merging_array_member($rule2->{match}[0][1]);
+    return unless @{$rule2->{match}} > 0;
+    return unless $rule1->{match}[0][0] eq $rule2->{match}[0][0];
+    my %r1 = %$rule1;
+    my %r2 = %$rule2;
+    $r1{match} = [ @{$r1{match}} ];
+    $r2{match} = [ @{$r2{match}} ];
+    shift @{$r1{match}};
+    shift @{$r2{match}};
+    return Dumper(\%r1) eq Dumper(\%r2);
+}
+
+sub array_match_count($\@) {
+    my ($first, $rules) = @_;
+    return 0 unless @{$first->{match}} > 0;
+
+    my $option = $first->{match}[0][0];
+    my $params = $first->{match_keywords}{$option}{params};
+
+    # don't merge options which allow only one string parameter
+    return 0 if defined $params and not ref $params and $params eq 's';
+
+    my $count = 0;
+    foreach (@$rules) {
+        last unless array_matches($first, $_);
+        $count++;
+    }
+    return $count;
+}
+
+sub optimize {
+    my @result;
+
+    # try to find a common prefix and put rules in a block:
+    # saddr 1.2.3.4 proto tcp dport ssh ACCEPT;
+    # saddr 5.6.7.8 proto tcp dport ssh DROP;
+    # ->
+    # proto tcp dport ssh {
+    #     saddr 1.2.3.4 ACCEPT;
+    #     saddr 5.6.7.8 DROP;
+    # }
+    while (@_ > 0) {
+        my $rule = shift;
+        if (@{$rule->{match}} > 0) {
+            my $match_count = prefix_match_count($rule, \@_);
+
+            if ($match_count > 0) {
+                my $match = $rule->{match}[0];
+                my @matching = ( $rule, splice(@_, 0, $match_count) );
+                map { shift @{$_->{match}} } @matching;
+
+                my @block = optimize(@matching);
+
+                if (@block == 1) {
+                    $rule = $block[0];
+                    unshift @{$rule->{match}}, $match;
+                    push @result, $rule;
+                } else {
+                    push @result, {
+                        match => [ $match ],
+                        block => \@block,
+                    };
+                }
+            } else {
+                push @result, $rule;
+            }
+        } else {
+            push @result, $rule;
+        }
+    }
+
+    @_ = @result;
+    undef @result;
+
+    # try to combine rules with arrays:
+    # saddr 1.2.3.4 proto tcp ACCEPT;
+    # saddr 5.6.7.8 proto tcp ACCEPT;
+    # ->
+    # saddr (1.2.3.4 5.6.7.8) proto tcp ACCEPT;
+    while (@_ > 0) {
+        my $rule = shift;
+        my $match_count = array_match_count($rule, @_);
+
+        if ($match_count > 0) {
+            my $option = $rule->{match}[0][0];
+            my @matching = ( $rule, splice(@_, 0, $match_count) );
+            my @params = map {
+                (ref $_ and ref $_ eq 'ARRAY') ? @$_ : $_
+            } map {
+                $_->{match}[0][1]
+            } @matching;
+
+            $rule->{match}[0][1] = \@params;
+        }
+
+        push @result, $rule;
+    }
+
+    return @result;
+}
+
+sub flush_option {
+    my ($line, $key, $value) = @_;
+
+    if (ref($value) and ref($value) eq 'pre_negated') {
+        push @$line, '!';
+        $value = $value->[0];
+    }
+
+    push @$line, $key;
+
+    if (ref($value) and ref($value) eq 'negated') {
+        push @$line, '!';
+        $value = $value->[0];
+    }
+
+    if (ref($value) and ref($value) eq 'params') {
+        foreach (@$value) {
+            push @$line, format_array($_);
+        }
+    } elsif (defined $value) {
+        push @$line, format_array($value);
+    }
+}
+
+sub flush {
+    # optimize and write a list of rules
+
+    my @r = @_ ? @_ : @rules;
+    @r = optimize(@r);
+
+    foreach my $rule (@r) {
+        my @line;
+        # assemble the line, match stuff first, then target parameters
+        if (exists $rule->{match}) {
+            foreach (@{$rule->{match}}) {
+                flush_option(\@line, @$_);
+            }
+        }
+
+        if (exists $rule->{jump}) {
+            if (is_netfilter_core_target($rule->{jump}) ||
+                is_netfilter_module_target('ip', $rule->{jump})) {
+                push @line, $rule->{jump};
+            } else {
+                flush_option(\@line, 'jump', $rule->{jump});
+            }
+        } elsif (exists $rule->{goto}) {
+            flush_option(\@line, 'goto', $rule->{goto});
+        } elsif (not exists $rule->{block}) {
+            push @line, 'NOP';
+        }
+
+        if (exists $rule->{target}) {
+            foreach (@{$rule->{target}}) {
+                flush_option(\@line, @$_);
+            }
+        }
+
+        if (exists $rule->{block}) {
+            # this rule begins a block created in &optimize
+            write_line(@line, '{');
+            flush(@{$rule->{block}});
+            write_line('}');
+        } else {
+            # just a simple rule
+            write_line(@line, ';');
+        }
+    }
+    undef @rules;
+}
+
+sub flush_domain() {
+    flush;
+    write_line '}' if defined $chain;
+    write_line '}' if defined $table;
+    write_line '}' if defined $domain;
+
+    undef $chain;
+    undef $table;
+    undef $domain;
+}
+
+sub tokenize($) {
+    local $_ = shift;
+    my @result;
+    while (s/^\s*"([^"]*)"//s || s/^\s*(!)// || s/^\s*(\S+)//s) {
+        push @result, $1;
+    }
+    return @result;
+}
+
+sub fetch_token($\@) {
+    my ($option, $tokens) = @_;
+    die "not enough arguments for option '$option' in line $."
+      unless @$tokens > 0;
+    shift @$tokens;
+}
+
+sub fetch_negated(\@) {
+    my $tokens = shift;
+    @$tokens > 0 && $tokens->[0] eq '!' && shift @$tokens;
+}
+
+sub merge_keywords(\%$) {
+    my ($rule, $keywords) = @_;
+    while (my ($name, $def) = each %$keywords) {
+        $rule->{keywords}{$name} = $def;
+    }
+}
+
+sub parse_def_option($\%$\@) {
+    my ($option, $def, $negated, $tokens) = @_;
+
+    my $params = $def->{params};
+    my $value;
+
+    $negated = 1 if fetch_negated(@$tokens);
+
+    unless (defined $params) {
+        undef $value;
+    } elsif (ref $params && ref $params eq 'CODE') {
+        # XXX we assume this is ipt_multiport
+        $value = [ split /,/, fetch_token($option, @$tokens) ];
+    } elsif ($params eq 'm') {
+        $value = bless [ fetch_token($option, @$tokens) ], 'multi';
+    } elsif ($params =~ /^[a-z]/) {
+        die if @$tokens < length($params);
+
+        my @params;
+        foreach my $p (split(//, $params)) {
+            if ($p eq 's') {
+                push @params, shift @$tokens;
+            } elsif ($p eq 'c') {
+                push @params, [ split /,/, shift @$tokens ];
+            } else {
+                die;
+            }
+        }
+
+        $value = @params == 1
+          ? $params[0]
+            : bless \@params, 'params';
+    } elsif ($params == 1) {
+        $value = fetch_token($option, @$tokens);
+    } else {
+        $value = bless [ map {
+            fetch_token($option, @$tokens)
+        } (1..$params) ], 'multi';
+    }
+
+    $value = bless [ $value ], exists $def->{pre_negation} ? 'pre_negated' : 'negated'
+      if $negated;
+
+    return $value;
+}
+
+sub parse_option(\%$$\@) {
+    my ($line, $option, $pre_negated, $tokens) = @_;
+
+    my $cur = $line->{cur};
+    die unless defined $cur;
+
+    $option = $aliases{$option} if exists $aliases{$option};
+    $option = 'destination-ports' if $option eq 'dports';
+    $option = 'source-ports' if $option eq 'sports';
+
+    if ($option eq 'protocol') {
+        my %def = ( params => 1 );
+        my $value = parse_def_option($option, %def, $pre_negated, @$tokens);
+        $line->{proto} = $value;
+        push @$cur, [ 'protocol', $value ];
+
+        my $module = netfilter_canonical_protocol($value);
+        if (exists $proto_defs{ip}{$module}) {
+            merge_keywords(%$line, $proto_defs{ip}{$module}{keywords});
+        }
+
+        if ($value =~ /^(?:tcp|udp|udplite|dccp|sctp)$/) {
+            my %def = (
+                params => 1,
+                negation => 1,
+               );
+            $line->{keywords}{sport} = { name => 'sport', %def };
+            $line->{keywords}{dport} = { name => 'dport', %def };
+        }
+        undef $pre_negated;
+    } elsif ($option eq 'match') {
+        die unless @$tokens;
+        my $param = shift @$tokens;
+        $line->{mod}{$param} = 1;
+        # we don't need this module if the protocol with the
+        # same name is already specified
+        push @$cur, [ 'mod', $param ]
+          unless exists $line->{proto} and
+            ($line->{proto} eq $param or
+             $line->{proto} =~ /^(ipv6-icmp|icmpv6)$/s and $param eq 'icmp6');
+
+        my $module = $param eq 'icmp6' ? 'icmpv6' : $param;
+        if (exists $match_defs{ip}{$module}) {
+            merge_keywords(%$line, $match_defs{ip}{$module}{keywords});
+        } elsif (exists $proto_defs{ip}{$module}) {
+            merge_keywords(%$line, $proto_defs{ip}{$module}{keywords});
+        }
+
+        if ($param =~ /^(?:tcp|udp|udplite|dccp|sctp)$/) {
+            my %def = (
+                params => 1,
+                negation => 1,
+               );
+            $line->{keywords}{sport} = { name => 'sport', %def };
+            $line->{keywords}{dport} = { name => 'dport', %def };
+        }
+    } elsif (exists $line->{keywords}{$option}) {
+        my $def = $line->{keywords}{$option};
+        my $value = parse_def_option($option, %$def, $pre_negated, @$tokens);
+
+        if (ref $value and ref $value eq 'multi' and
+              @{$line->{cur}} > 0 and $line->{cur}[-1][0] eq $option and
+                ref $line->{cur}[-1][1] eq 'multi') {
+            # merge multiple "--u32" into a ferm array
+            push @{$line->{cur}[-1][1]}, @$value;
+            return;
+        }
+
+        undef $pre_negated;
+        push @{$line->{cur}}, [ $def->{ferm_name} || $def->{name}, $value ];
+    } elsif ($option eq 'jump') {
+        die unless @$tokens;
+        my $target = shift @$tokens;
+        # store the target in $line->{jump}
+        $line->{jump} = $target;
+        # what now follows is target parameters; set $cur
+        # correctly
+        $line->{cur} = $line->{target} = [];
+
+        $line->{match_keywords} = $line->{keywords};
+        $line->{keywords} = {};
+        merge_keywords(%$line, $target_defs{ip}{$target}{keywords})
+          if exists $target_defs{ip}{$target};
+    } elsif ($option eq 'goto') {
+        die unless @$tokens;
+        my $target = shift @$tokens;
+        # store the target in $line->{jump}
+        $line->{goto} = $target;
+    } else {
+        die "option '$option' in line $. not understood\n";
+    }
+
+    die "option '$option' in line $. cannot be negated\n"
+      if $pre_negated;
+}
+
+if (grep { $_ eq '-h' || $_ eq '--help' } @ARGV) {
+    require Pod::Usage;
+    Pod::Usage::pod2usage(-exitstatus => 0,
+                          -verbose => 99);
+}
+
+if (@ARGV == 0 && -t STDIN) {
+    open STDIN, "iptables-save|"
+      or die "Failed run to iptables-save: $!";
+} elsif (grep { /^-./ } @ARGV) {
+    require Pod::Usage;
+    Pod::Usage::pod2usage(-exitstatus => 1,
+                          -verbose => 99);
+}
+
+print "# ferm rules generated by import-ferm\n";
+print "# http://ferm.foo-projects.org/\n";
+
+$next_domain = $ENV{FERM_DOMAIN} || 'ip';
+
+my %policies;
+
+while (<>) {
+    if (/^(?:#.*)?$/) {
+        # empty or comment
+
+        $next_domain = $1 if /^#.*\b(ip|ip6)tables(?:-save)\b/;
+    } elsif (/^\*(\w+)$/) {
+        # table
+
+        if (keys %policies > 0) {
+            while (my ($chain, $policy) = each %policies) {
+                write_line('chain', $chain, 'policy', $policy, ';');
+            }
+            undef %policies;
+        }
+
+        unless (defined $domain and $domain eq $next_domain) {
+            flush_domain;
+            $domain = $next_domain;
+            write_line 'domain', $domain, '{';
+        }
+
+        write_line('}') if defined $table;
+        $table = $1;
+        write_line('table', $table, '{');
+    } elsif (/^:(\S+)\s+-\s+/) {
+        # custom chain
+        die unless defined $table;
+        write_line("chain $1;");
+    } elsif (/^:(\S+)\s+(\w+)\s+/) {
+        # built-in chain
+        die unless defined $table;
+        $policies{$1} = $2;
+    } elsif (s/^-A (\S+)\s+//) {
+        # a rule
+        unless (defined $chain) {
+            flush;
+            $chain = $1;
+            write_line('chain', $chain, '{');
+        } elsif ($1 ne $chain) {
+            flush;
+            write_line('}');
+            $chain = $1;
+            write_line('chain', $chain, '{');
+        }
+
+        if (exists $policies{$chain}) {
+            write_line('policy', $policies{$chain}, ';');
+            delete $policies{$chain};
+        }
+
+        my @tokens = tokenize($_);
+
+        my %line;
+        $line{keywords} = {};
+        merge_keywords(%line, $match_defs{ip}{''}{keywords});
+
+        # separate 'match' parameters from 'target' parameters; $cur
+        # points to the current position
+        $line{cur} = $line{match} = [];
+        while (@tokens) {
+            local $_ = shift @tokens;
+            if (/^-(\w)$/ || /^--(\S+)$/) {
+                parse_option(%line, $1, undef, @tokens);
+            } elsif ($_ eq '!') {
+                die unless @tokens;
+                $_ = shift @tokens;
+                /^-(\w)$/ || /^--(\S+)$/
+                  or die "option expected in line $.\n";
+                parse_option(%line, $1, 1, @tokens);
+            } else {
+                print STDERR "warning: unknown token '$_' in line $.\n";
+            }
+        }
+        delete $line{cur};
+        push @rules, \%line;
+    } elsif ($_ =~ /^COMMIT/) {
+        flush;
+
+        if (defined $chain) {
+            write_line('}');
+            undef $chain;
+        }
+    } else {
+        print STDERR "line $. was not understood, ignoring it\n";
+    }
+}
+
+if (keys %policies > 0) {
+    while (my ($chain, $policy) = each %policies) {
+        write_line('chain', $chain, 'policy', $policy, ';');
+    }
+}
+
+flush_domain if defined $domain;
+
+die unless $indent == 0;
+
+__END__
+
+=head1 NAME
+
+import-ferm - import existing firewall rules into ferm
+
+=head1 SYNOPSIS
+
+B<import-ferm> > ferm.conf
+
+iptables-save | B<import-ferm> > ferm.conf
+
+B<import-ferm> I<inputfile> > ferm.conf
+
+=head1 DESCRIPTION
+
+This script helps you with porting an existing IPv4 firewall
+configuration to ferm.  It reads a file generated with
+B<iptables-save>, and tries to suggest a ferm configuration file.
+
+If no input file was specified on the command line, B<import-ferm>
+runs F<iptables-save>.
+
+=head1 BUGS
+
+iptables-save older than 1.3 is unable to write valid saves - this is
+not a bug in B<import-ferm>.
+
+=cut
