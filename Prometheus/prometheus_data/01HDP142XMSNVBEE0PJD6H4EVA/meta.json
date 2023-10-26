@@ -1,0 +1,17 @@
+{
+	"ulid": "01HDP142XMSNVBEE0PJD6H4EVA",
+	"minTime": 1698314400032,
+	"maxTime": 1698321600000,
+	"stats": {
+		"numSamples": 3996852,
+		"numSeries": 5452,
+		"numChunks": 32594
+	},
+	"compaction": {
+		"level": 1,
+		"sources": [
+			"01HDP142XMSNVBEE0PJD6H4EVA"
+		]
+	},
+	"version": 1
+}

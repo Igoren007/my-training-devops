@@ -1,0 +1,17 @@
+{
+	"ulid": "01HDNKCMDG28P7KGGR24NZF67T",
+	"minTime": 1698300003752,
+	"maxTime": 1698307200000,
+	"stats": {
+		"numSamples": 560693,
+		"numSeries": 5404,
+		"numChunks": 5547
+	},
+	"compaction": {
+		"level": 1,
+		"sources": [
+			"01HDNKCMDG28P7KGGR24NZF67T"
+		]
+	},
+	"version": 1
+}
