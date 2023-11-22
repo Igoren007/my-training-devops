@@ -52,5 +52,5 @@
         append: yes
         groups: docker
 
-    - name: Server restart
-      reboot:
+#    - name: Server restart
+#      reboot:

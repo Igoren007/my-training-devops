@@ -1,6 +1,9 @@
-- name: Test using role
-  gather_facts: true
-  hosts: aws-ec2
-  become: yes
-  roles:
-    - zabbix-agent
+#- name: Install docker & create folder for logs
+---
+  - gather_facts: true
+    hosts: vmware-srv
+    become: yes
+    roles:
+      - docker
+      - create_logs_folder
+      - create_jenkins_user

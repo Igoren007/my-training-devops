@@ -1,0 +1,15 @@
+---
+- name: Add the user 'jenkins' with a bash shell, and groups docker, sudo
+  ansible.builtin.user:
+    name: jenkins
+    shell: /bin/bash
+    create_home: true
+    home: /home/jenkins
+    groups: sudo,docker
+    append: yes
+
+- name: Set authorized key taken from file
+  authorized_key:
+    user: jenkins
+    state: present
+    key: "{{ lookup('file', './key_for_test.pub') }}"

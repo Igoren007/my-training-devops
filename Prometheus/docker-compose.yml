@@ -42,7 +42,7 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--web.enable-lifecycle'
     ports:
-     - '1990:9090'
+     - '9090:9090'
     networks:
       - common
 
@@ -69,5 +69,18 @@ services:
     - /var/run:/var/run:rw
     - /sys:/sys:ro
     - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - common
+
+  alertmanager:
+    image: prom/alertmanager:v0.21.0
+    ports:
+      - 9093:9093
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    restart: always
+    command:
+      - '-config.file=/etc/alertmanager/config.yml'
+      - '-storage.path=/alertmanager'
     networks:
       - common

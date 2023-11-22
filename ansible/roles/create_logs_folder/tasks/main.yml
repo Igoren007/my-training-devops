@@ -1,0 +1,11 @@
+---
+- debug:
+    msg: 11Include {{ ansible_distribution }}-{{ ansible_distribution_release }}/main.yml
+  tags:
+    - always
+
+
+- name: Include OS dependent role
+  include_tasks: "{{ ansible_distribution }}/main.yml"
+  tags:
+    - always

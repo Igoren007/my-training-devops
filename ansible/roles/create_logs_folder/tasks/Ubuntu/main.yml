@@ -1,0 +1,6 @@
+---
+- name: Create a directory for logs
+  ansible.builtin.file:
+    path: /var/log/container
+    state: directory
+    mode: '0777'
