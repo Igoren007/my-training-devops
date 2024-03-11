@@ -1,0 +1,15 @@
+---
+- name: Add the user 'admin' with a bash shell, and groups docker, sudo
+  ansible.builtin.user:
+    name: admin
+    shell: /bin/bash
+    create_home: true
+    home: /home/admin
+    groups: sudo,docker
+    append: yes
+
+- name: Set authorized key taken from file
+  authorized_key:
+    user: admin
+    state: present
+    key: "{{ lookup('file', './key_for_test.pub') }}"

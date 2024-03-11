@@ -1,0 +1,21 @@
+version: '3.6'
+
+networks:
+  common:
+    name: common-network
+    external: true
+
+services:
+
+  zoo1:
+    image: zookeeper
+    container_name: zk1
+    restart: always
+    hostname: zoo1
+    ports:
+      - 2181:2181
+    environment:
+      ZOO_MY_ID: 1
+      ZOO_SERVERS: server.1=zoo1:2888:3888;2181
+    networks:
+      - common

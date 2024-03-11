@@ -1,9 +1,7 @@
 #- name: Install docker & create folder for logs
 ---
   - gather_facts: true
-    hosts: vmware-srv
+    hosts: timeweb-srv1
     become: yes
     roles:
-      - docker
-      - create_logs_folder
-      - create_jenkins_user
+      - create_admin_user

@@ -1,0 +1,21 @@
+version: "3.6"
+
+networks:
+  common:
+    name: common-network
+    external: true
+
+services:
+
+  load_balancer:
+    image: nginx
+    container_name: nginx-proxy
+    volumes:
+      - ./nginx_config:/etc/nginx/conf.d
+      - ./certificates:/etc/nginx/ssl
+      - ./snippets:/etc/nginx/snippets
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - common
