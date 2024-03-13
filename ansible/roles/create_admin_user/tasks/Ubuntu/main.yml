@@ -8,6 +8,14 @@
     groups: sudo,docker
     append: yes
 
+
+- name: Allow the user admin to do sudo commands without password
+  community.general.sudoers:
+    name: allow-admin-sudo
+    state: present
+    user: admin
+    commands: ALL
+
 - name: Set authorized key taken from file
   authorized_key:
     user: admin

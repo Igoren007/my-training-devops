@@ -1,0 +1,24 @@
+---
+  - name: Copy zk-register.service file to remote host
+    ansible.builtin.copy:
+      src: zk-register.service
+      dest: /etc/systemd/system/zk-register.service
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: Copy zk-reg-app app directory to remote hosts
+    ansible.posix.synchronize:
+      src: ./
+      dest: /zk-reg
+
+  - name: Start zk-register.service
+    ansible.builtin.service:
+      state: started
+      name: zk-register.service
+      daemon_reload: true
+
+  - name: Enable zk-register.service
+    ansible.builtin.service:
+      name: zk-register.service
+      enabled: true

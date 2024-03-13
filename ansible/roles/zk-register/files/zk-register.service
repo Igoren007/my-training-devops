@@ -1,0 +1,18 @@
+[Unit]
+  Description=Register host in zk
+  After=network.target
+  Requires=network.target 
+ 
+[Service]
+#  WorkingDirectory=/zk-reg
+  User=root
+  ExecStart=/zk-reg/my-env/bin/python3 /zk-reg/register.py
+#  ExecStop=/zk-reg/env/bin/python3 /zk-reg/register.py --stop
+#  ExecReload=/zk-reg/env/bin/python3 /zk-reg/register.py --restart
+#  Type=simple
+  TimeoutSec=10 
+  Restart=on-failure
+  RestartSec=2
+ 
+[Install]
+  WantedBy=multi-user.target

@@ -1,0 +1,19 @@
+version: '3.6'
+
+networks:
+  common:
+    name: common-network
+    external: true
+
+services:
+  http-sd:
+    image: http-sd-v1
+    container_name: http-sd
+    ports:
+     - "8888:8888"
+    environment:
+     ZK_HOST: 176.57.212.153
+     ZK_PORT: 2181
+    restart: always
+    networks:
+      - common
