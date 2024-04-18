@@ -25,7 +25,7 @@ class MyRequestHandler(http.server.BaseHTTPRequestHandler):
 def get_hosts_from_zk():
     zk_connect = f"{ZK_HOST}:{ZK_PORT}"
     zk_hosts = []
-    zk = KazooClient(hosts=':2181')
+    zk = KazooClient(hosts=zk_connect)
     zk.start()
     children = zk.get_children("/nodes")
     for i in children:

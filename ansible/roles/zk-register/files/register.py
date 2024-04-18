@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from kazoo.client import KazooClient
 import socket
 import time
