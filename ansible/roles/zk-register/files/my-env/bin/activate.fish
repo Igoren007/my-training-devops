@@ -29,7 +29,7 @@ end
 # unset irrelevant variables
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV "/home/igarmatenko/WorkTradingView/zk-register/my-env"
+set -gx VIRTUAL_ENV "/home/igor/my_training_DevOps/ansible/roles/zk-register/files/my-env"
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/bin" $PATH

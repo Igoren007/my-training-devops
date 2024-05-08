@@ -1,0 +1,17 @@
+[Unit]
+  Description=Run node-exporter.service
+  After=network.target
+  Requires=network.target
+
+[Service]
+  WorkingDirectory=/zk-reg
+  User=root
+  ExecStart=/usr/bin/node-exporter
+#  ExecStop=/zk-reg/env/bin/python3 /zk-reg/register.py --stop
+#  ExecReload=/zk-reg/env/bin/python3 /zk-reg/register.py --restart
+  TimeoutSec=10
+  Restart=on-failure
+  RestartSec=2
+
+[Install]
+  WantedBy=multi-user.target

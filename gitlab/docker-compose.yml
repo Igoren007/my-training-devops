@@ -1,0 +1,72 @@
+version: '3.6'
+
+services:
+  redis:
+    restart: always
+    image: redis:6.2.6
+    container_name: gitlab-redis
+    command:
+    - --loglevel warning
+    volumes:
+    - /opt/container/gitlab/redis-data:/data:Z
+
+  postgresql:
+    restart: always
+    image: sameersbn/postgresql:14-20230628
+    container_name: gitlab-postgres
+    volumes:
+    - /opt/container/gitlab/postgresql-data:/var/lib/postgresql:Z
+    environment:
+    - DB_USER=${DB_USER}
+    - DB_PASS=${DB_PASS}
+    - DB_NAME=${DB_NAME}
+    - DB_EXTENSION=${DB_EXTENSION}
+
+  gitlab:
+    restart: always
+    image: sameersbn/gitlab:16.9.2
+    container_name: gitlab-gitlab
+    depends_on:
+    - redis
+    - postgresql
+    ports:
+    - "8181:80"
+    - "10022:22"
+    volumes:
+    - /opt/container/gitlab/gitlab-data:/home/git/data:Z
+    healthcheck:
+      test: ["CMD", "/usr/local/sbin/healthcheck"]
+      interval: 5m
+      timeout: 10s
+      retries: 3
+      start_period: 5m
+    environment:
+    - DEBUG=${DEBUG}
+    - DB_ADAPTER=${DB_ADAPTER}
+    - DB_HOST=${DB_HOST}
+    - DB_PORT=${DB_PORT}
+    - DB_USER=${DB_USER}
+    - DB_PASS=${DB_PASS}
+    - DB_NAME=${DB_NAME}
+    - REDIS_HOST=${REDIS_HOST}
+    - REDIS_PORT=${REDIS_PORT}
+    - TZ=${TZ}
+    - GITLAB_TIMEZONE=${GITLAB_TIMEZONE}
+    - GITLAB_HTTPS=${GITLAB_HTTPS}
+    - SSL_SELF_SIGNED=${SSL_SELF_SIGNED}
+    - GITLAB_HOST=${GITLAB_HOST}
+    - GITLAB_PORT=${GITLAB_PORT}
+    - GITLAB_SSH_PORT=${GITLAB_SSH_PORT}
+    - GITLAB_SECRETS_DB_KEY_BASE=${GITLAB_SECRETS_DB_KEY_BASE}
+    - GITLAB_SECRETS_SECRET_KEY_BASE=${GITLAB_SECRETS_SECRET_KEY_BASE}
+    - GITLAB_SECRETS_OTP_KEY_BASE=${GITLAB_SECRETS_OTP_KEY_BASE}
+
+  gitlab-runner-1:
+    restart: always
+    image: gitlab/gitlab-runner:latest
+    container_name: gitlab-runner-1
+    depends_on:
+    - gitlab
+    volumes:
+    - /opt/container/gitlab/gitlab-runner-config:/etc/gitlab-runner
+    - /var/run/docker.sock:/var/run/docker.sock

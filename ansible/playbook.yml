@@ -1,8 +1,9 @@
 #- name: Install docker & create folder for logs
 ---
   - gather_facts: true
-    hosts: timeweb-srv1
+    hosts: srv-home
     become: yes
     roles:
-      - create_admin_user
-      - zk-register
+#      - create_admin_user
+#      - docker
+      - atop

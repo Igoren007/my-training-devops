@@ -1,4 +1,4 @@
-#!/home/igarmatenko/WorkTradingView/zk-register/my-env/bin/python3
+#!/home/igor/my_training_DevOps/ansible/roles/zk-register/files/my-env/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

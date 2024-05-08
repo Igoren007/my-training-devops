@@ -1,0 +1,24 @@
+---
+  - name: Copy node-exporter.service file to remote host
+    ansible.builtin.copy:
+      src: node-exporter.service
+      dest: /etc/systemd/system/node-exporter.service
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: Copy node-exporter bin to remote host
+    ansible.posix.synchronize:
+      src: node_exporter
+      dest: /usr/bin/node-exporter
+
+  - name: Start node-exporter.service
+    ansible.builtin.service:
+      state: started
+      name: node-exporter.service
+      daemon_reload: true
+
+  - name: Enable node-exporter.service
+    ansible.builtin.service:
+      name: node-exporter.service
+      enabled: true

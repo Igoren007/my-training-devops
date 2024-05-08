@@ -1,0 +1,27 @@
+---
+  - name: Install atop
+    apt:
+      name: atop
+      state: present
+
+  - name: Create atop.daily script
+    template:
+      src: atop.daily.j2
+      dest: /usr/share/atop/atop.daily
+      mode: 0755
+      owner: root
+      group: root
+
+  - name: Create log directory
+    file:
+      path: /var/log/atop
+      state: directory
+      mode: 0755
+      owner: root
+      group: root
+
+  - name: Restart atop
+    service:
+      name: atop
+      state: restarted
+

@@ -1,0 +1,4 @@
+---
+atop_interval: 10
+atop_logs_keep_last_days: 2
+atop_log_opts: -a

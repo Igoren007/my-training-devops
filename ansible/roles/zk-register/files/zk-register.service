@@ -6,7 +6,7 @@
 [Service]
   WorkingDirectory=/zk-reg
   User=root
-  ExecStart=/bin/bash -c "cd /zk-reg && source my-env/bin/activate && python3 register.py"
+  ExecStart=/bin/bash -c "/zk-reg/my-env/bin/python3 register.py"
 #  ExecStop=/zk-reg/env/bin/python3 /zk-reg/register.py --stop
 #  ExecReload=/zk-reg/env/bin/python3 /zk-reg/register.py --restart
 #  Type=simple
