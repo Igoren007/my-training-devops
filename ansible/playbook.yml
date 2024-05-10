@@ -1,9 +1,12 @@
 #- name: Install docker & create folder for logs
 ---
   - gather_facts: true
-    hosts: srv-home
+    hosts: srv-work
     become: yes
     roles:
 #      - create_admin_user
 #      - docker
-      - atop
+#      - atop
+#      - node-exporter
+#      - zk-register
+       - cadvisor-service

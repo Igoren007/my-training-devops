@@ -1,0 +1,21 @@
+[Unit]
+Description=cadvisor-docker.service
+Requires=docker.service
+After=docker.service
+
+[Service]
+TimeoutStartSec=0
+Restart=always
+ExecStartPre=-/usr/bin/docker rm -f cadvisor-docker
+ExecStart=/bin/bash -c 'echo "Starting cadvisor-docker container"; \
+exec /usr/bin/docker run --tty --name="cadvisor-docker" \
+-p "9200:8080" \
+-v "/sys/fs/cgroup:/sys/fs/cgroup" \
+-v "/var/run:/var/run" \
+-v "/var/lib/docker/:/var/lib/docker" \
+gcr.io/cadvisor/cadvisor:latest'
+ExecStop=-/usr/bin/docker stop --time 5 cadvisor-docker
+ExecStop=-/usr/bin/docker rm cadvisor-docker
+
+[Install]
+WantedBy=multi-user.target

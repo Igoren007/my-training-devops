@@ -1,0 +1,19 @@
+---
+  - name: Copy cadvisor-docker.service file to remote host
+    ansible.builtin.copy:
+      src: cadvisor-docker.service
+      dest: /etc/systemd/system/cadvisor-docker.service
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: Start cadvisor-docker.service
+    ansible.builtin.service:
+      state: started
+      name: cadvisor-docker.service
+      daemon_reload: true
+
+  - name: Enable cadvisor-docker.service
+    ansible.builtin.service:
+      name: cadvisor-docker.service
+      enabled: true
