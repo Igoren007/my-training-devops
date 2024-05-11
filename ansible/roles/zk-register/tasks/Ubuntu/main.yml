@@ -22,3 +22,8 @@
     ansible.builtin.service:
       name: zk-register.service
       enabled: true
+
+  - name: Restart zk-register.service
+    ansible.builtin.service:
+      state: restarted
+      name: zk-register.service

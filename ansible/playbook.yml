@@ -1,12 +1,12 @@
 #- name: Install docker & create folder for logs
 ---
   - gather_facts: true
-    hosts: srv-work
+    hosts: timeweb-srv1
     become: yes
     roles:
 #      - create_admin_user
 #      - docker
 #      - atop
 #      - node-exporter
-#      - zk-register
-       - cadvisor-service
+      - zk-register
+#       - cadvisor-service
