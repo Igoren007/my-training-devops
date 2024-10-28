@@ -1,12 +1,14 @@
 #- name: Install docker & create folder for logs
 ---
   - gather_facts: true
-    hosts: timeweb-srv1
+    hosts: vmware-srv
     become: yes
+#    become_user: root
+#    become_method: su
     roles:
 #      - create_admin_user
-#      - docker
+      - docker
 #      - atop
 #      - node-exporter
-      - zk-register
+#      - zk-register
 #       - cadvisor-service

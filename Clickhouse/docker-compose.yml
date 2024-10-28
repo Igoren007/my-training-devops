@@ -1,0 +1,39 @@
+version: '3.7'
+
+services:  
+  zk:
+    image: confluentinc/cp-zookeeper:7.3.2
+    hostname: zk
+    container_name: zk
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_SERVERS: zk1:2888:3888
+
+  ch-1:
+    image: clickhouse/clickhouse-server
+    container_name: clickhouse-server-1
+    ports:
+      - '8123:8123'
+      - '9000:9000'
+    depends_on:
+      - zk
+    volumes:
+      - ./db1:/var/lib/clickhouse
+      - ./config-ch-1.xml:/etc/clickhouse-server/config.d/config-ch-1.xml
+      - ./config.xml:/etc/clickhouse-server/config.xml
+
+  ch-2:
+    image: clickhouse/clickhouse-server
+    container_name: clickhouse-server-2
+    ports:
+      - '8124:8123'
+      - '9001:9000'
+    volumes:
+      - ./db2:/var/lib/clickhouse
+      - ./config-ch-2.xml:/etc/clickhouse-server/config.d/config-ch-2.xml
+      - ./config.xml:/etc/clickhouse-server/config.xml
+    depends_on:
+      - zk

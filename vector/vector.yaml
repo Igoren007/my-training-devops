@@ -1,0 +1,15 @@
+sources:
+  file-logs:
+    type: file
+    include:
+      - /log/**/*.log
+
+sinks:
+  kafka-sink:
+    type: kafka
+    inputs:
+      - file-logs
+    bootstrap_servers: kafka1:19092
+    encoding:
+      codec: "text"
+    topic: logs

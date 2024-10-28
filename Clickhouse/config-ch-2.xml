@@ -1,0 +1,35 @@
+<clickhouse>
+
+    <listen_host>::</listen_host>
+    <listen_host>0.0.0.0</listen_host>
+    <listen_try>1</listen_try>
+    
+    <remote_servers>
+        <mycluster> // Название кластера
+            <shard>
+                <internal_replication>true</internal_replication>
+                <replica>
+                    <host>ch-1</host> // Первая нода одного шарда
+                    <port>9000</port>
+                </replica>
+                <replica>
+                    <host>ch-2</host> // Вторая нода одного шарда
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </mycluster>
+    </remote_servers>
+
+    <zookeeper>
+        <node index="1">
+            <host>zk</host> // сервер зукипер
+            <port>2181</port> // порт для подключения
+        </node>
+    </zookeeper>
+
+    <macros>
+        <cluster>mycluster</cluster> // название кластера
+        <replica>ch-2</replica> // Адрес данной машины
+        <shard>01</shard> // Шард данной машины
+    </macros>
+</clickhouse>

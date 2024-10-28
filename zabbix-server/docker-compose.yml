@@ -1,0 +1,93 @@
+version: '3.6'
+
+networks:
+  common:
+    name: common-network
+    external: true
+
+services:
+  postgres:
+    image: ${ZABBIX_POSTGRES_IMAGE_TAG}
+    container_name: pg-zabbix
+    volumes:
+      - ./zabbix-db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${ZABBIX_DB_NAME}
+      POSTGRES_USER: ${ZABBIX_DB_USER}
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD}
+    networks:
+      - common
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "${ZABBIX_DB_NAME}", "-U", "${ZABBIX_DB_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  zabbix-server:
+    image: ${ZABBIX_SERVER_IMAGE_TAG}
+    container_name: zabbix-server
+    environment:
+      DB_SERVER_HOST: postgres
+      DB_SERVER_PORT: 5432
+      POSTGRES_DB: ${ZABBIX_DB_NAME}
+      POSTGRES_USER: ${ZABBIX_DB_USER}
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD}
+      ZBX_CACHESIZE: ${ZABBIX_CACHESIZE}
+    networks:
+      - common
+    ports:
+      - 10051:10051
+    healthcheck:
+      test: grep -qr "zabbix_server" /proc/*/status || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  zabbix-web:
+    image: ${ZABBIX_WEB_IMAGE_TAG}
+    container_name: zabbix-web
+    environment:
+      DB_SERVER_HOST: postgres
+      DB_SERVER_PORT: 5432
+      POSTGRES_DB: ${ZABBIX_DB_NAME}
+      POSTGRES_USER: ${ZABBIX_DB_USER}
+      POSTGRES_PASSWORD: ${ZABBIX_DB_PASSWORD}
+      ZBX_SERVER_HOST: zabbix-server
+      PHP_TZ: ${ZABBIX_TIMEZONE}
+    networks:
+      - common
+    ports:
+      - 8585:8080
+#      - 443:443
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      zabbix-server:
+        condition: service_healthy
+
+  zabbix-agent:
+    image: ${ZABBIX_AGENT_IMAGE_TAG}
+    container_name: zabbix-agent
+    environment:
+      ZBX_HOSTNAME: Zabbix server
+      ZBX_SERVER_HOST: zabbix-server
+    networks:
+      - common
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - zabbix-server

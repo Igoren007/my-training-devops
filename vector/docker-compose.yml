@@ -1,0 +1,19 @@
+version: '3'
+
+networks:
+  log:
+    name: logging
+    external: true
+
+services:
+  vector:
+    image: timberio/vector:0.40.1-debian
+    container_name: vector
+    restart: always
+    ports:
+      - 8686:8686
+    volumes:
+      - $PWD/vector.yaml:/etc/vector/vector.yaml
+      - $PWD/test_log:/log
+    networks:
+      - log
